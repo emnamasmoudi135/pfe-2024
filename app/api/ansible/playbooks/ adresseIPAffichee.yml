@@ -1,0 +1,12 @@
+- name: Exemple de playbook pour Windows et Ubuntu
+  hosts: windows:ubuntu_servers
+  gather_facts: no
+  tasks:
+    - name: Afficher l'adresse IP de l'hôte
+      debug:
+        msg: "L'adresse IP de l'hôte {{ inventory_hostname }} est {{ ansible_host }}"
+
+
+
+
+
