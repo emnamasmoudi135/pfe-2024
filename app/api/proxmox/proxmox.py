@@ -2,6 +2,8 @@ import requests
 import urllib3
 from requests.exceptions import HTTPError
 from .BaseProxmoxApi import BaseProxmoxAPI
+from contextlib import contextmanager
+
 
 # Disable SSL verification warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -30,38 +32,49 @@ class ProxmoxAPI(BaseProxmoxAPI):
             **kwargs: Additional arguments to pass to requests method.
 
         Returns:
-            tuple: (success, data or None) where success is a boolean indicating the outcome.
+            tuple: (success, data or None, status_code) where success is a boolean indicating the outcome,
+                   data is the JSON response or None, and status_code is the HTTP status code from the error.
         """
         full_url = f"{self.base_url}{url}"
         try:
             response = self.session.request(method, full_url, **kwargs)
             response.raise_for_status()
-            return True, response.json().get('data', None)
+            return True, response.json().get('data', None), None
         except HTTPError as http_err:
-            return False, None
-        except Exception as err:
-            return False, None
-
-    def login(self, url):
+            # Here we return False, and the error from the server
+            return False, None, http_err.response.status_code
+        except Exception as error:
+            # For other exceptions, you may choose to return a generic error code such as 500.
+            return False, None,  error.response.status_code
+        
+    @contextmanager
+    def login_context(self, url):
         """
-        Authenticate against the Proxmox API using provided credentials.
+        A context manager to handle API login and ensure the session is closed on exit.
 
         Args:
             url: Endpoint URL for login.
 
-        Returns:
-            tuple: (success, data or None) indicating whether login was successful and session details.
+        Yields:
+            The ProxmoxAPI instance itself.
         """
+        try:
+            self.login(url)
+            yield self
+        finally:
+            self.session.close()
+
+    def login(self, url):
         payload = {
             'username': self.app.config['PROXMOX_USER'],
             'password': self.app.config['PROXMOX_PASSWORD'],
         }
-        success, data = self.make_request('POST', url, data=payload)
+        success, data, status_code = self.make_request('POST', url, data=payload)
         if success:
             self.session.cookies.set('PVEAuthCookie', data['ticket'])
             self.session.headers.update({'CSRFPreventionToken': data['CSRFPreventionToken']})
-        return success, data
-
+        return success, data, status_code
+    
     def list_vms(self, url):
         """
         Retrieve a list of VMs from the Proxmox server.
@@ -70,7 +83,7 @@ class ProxmoxAPI(BaseProxmoxAPI):
             url: Endpoint URL for listing VMs.
 
         Returns:
-            tuple: (success, data or None) with the list of VMs or error.
+            tuple: (success, data or None, status_code) with the list of VMs or error and the status code.
         """
         return self.make_request('GET', url)
 
@@ -83,7 +96,7 @@ class ProxmoxAPI(BaseProxmoxAPI):
             vm_config: Configuration settings for the new VM.
 
         Returns:
-            tuple: (success, data or None) with the creation result or error.
+            tuple: (success, data or None, status_code) with the creation result or error and the status code.
         """
         return self.make_request('POST', url, json=vm_config)
 
@@ -95,7 +108,7 @@ class ProxmoxAPI(BaseProxmoxAPI):
             url: Endpoint URL for VM deletion.
 
         Returns:
-            tuple: (success, data or None) indicating whether the VM was successfully deleted.
+            tuple: (success, data or None, status_code) indicating whether the VM was successfully deleted and the status code.
         """
         return self.make_request('DELETE', url)
 
@@ -108,7 +121,7 @@ class ProxmoxAPI(BaseProxmoxAPI):
             vm_config: Updated configuration settings for the VM.
 
         Returns:
-            tuple: (success, data or None) with the update result or error.
+            tuple: (success, data or None, status_code) with the update result or error and the status code.
         """
         return self.make_request('PUT', url, data=vm_config)
 
@@ -120,7 +133,7 @@ class ProxmoxAPI(BaseProxmoxAPI):
             url: Endpoint URL for fetching VM status.
 
         Returns:
-            tuple: (success, data or None) with the status information or error.
+            tuple: (success, data or None, status_code) with the status information or error and the status code.
         """
         return self.make_request('GET', url)
 
@@ -135,3 +148,4 @@ def get_proxmox_api(app):
         ProxmoxAPI: A new instance of ProxmoxAPI.
     """
     return ProxmoxAPI(app)
+

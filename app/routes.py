@@ -11,8 +11,10 @@ def login_proxmox():
     Returns:
         JSON response containing the session ticket and CSRF prevention token if successful, or an error message.
     """
-    return jsonify(proxmox_api.login('/access/ticket'))
+    with proxmox_api.login_context('/access/ticket'):
+        return jsonify(proxmox_api.login('/access/ticket'))
 
+     
 @app.route('/list-vms/<string:node>')
 def list_vms(node):
     """
