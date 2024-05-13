@@ -80,6 +80,48 @@ def vm_status_route(node, vmid):
     return jsonify(proxmox_api.get_vm_status(f'/nodes/{node}/qemu/{vmid}/status/current'))
 
 
+@app.route('/terraform/init', methods=['GET'])
+def terraform_init():
+    """
+    Initialize the Terraform environment. This route handles GET requests to set up the necessary
+    infrastructure as defined in the Terraform configuration files.
+
+    Returns:
+        A JSON object containing the result of the Terraform 'init' command, including status
+        and any output or error messages.
+    """
+    result = terraform_api.init()
+    return jsonify(result)
+
+@app.route('/terraform/apply', methods=['POST'])
+def terraform_apply():
+    """
+    Apply Terraform configurations. This route handles POST requests to apply changes and create
+    or update resources as defined in the Terraform plan.
+
+    Returns:
+        A JSON object containing the result of the Terraform 'apply' command, including status
+        and any output or error messages.
+    """
+    result = terraform_api.apply()
+    return jsonify(result)
+
+@app.route('/terraform/destroy', methods=['POST'])
+def terraform_destroy():
+    """
+    Destroy Terraform-managed infrastructure. This route handles POST requests to remove all
+    resources managed by Terraform according to the defined plan.
+
+    Returns:
+        A JSON object containing the result of the Terraform 'destroy' command, including status
+        and any output or error messages.
+    """
+    result = terraform_api.destroy()
+    return jsonify(result)
+
+
+
+
 
 
 # @app.route('/deploy-playbook/<playbook_name>', methods=['POST'])
@@ -103,22 +145,5 @@ def vm_status_route(node, vmid):
 
 
 
-
-
-
-# @app.route('/terraform/init', methods=['GET'])
-# def terraform_init():
-#     result = terraform_api.init()
-#     return jsonify(result)
-
-# @app.route('/terraform/apply', methods=['POST'])
-# def terraform_apply():
-#     result = terraform_api.apply()
-#     return jsonify(result)
-
-# @app.route('/terraform/destroy', methods=['POST'])
-# def terraform_destroy():
-#     result = terraform_api.destroy()
-#     return jsonify(result)
 
 
