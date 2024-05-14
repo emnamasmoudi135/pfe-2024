@@ -79,4 +79,37 @@ class Ansible:
                 self.ssh_connection.disconnect()
         except Exception as e:
             return self.handle_exception(e)
+        
 
+    def modify_playbook(self, playbook_name: str, new_content: str) -> Tuple[bool, Optional[str], Optional[int]]:
+        """
+        Check if a playbook exists and modify it if it does.
+
+        Args:
+            playbook_name (str): The name of the playbook to be modified.
+            new_content (str): The new content to replace the existing playbook content.
+
+        Returns:
+            Tuple[bool, Optional[str], Optional[int]]: (success, message, status_code)
+        """
+        remote_path = os.path.join(current_app.config['REMOTE_PLAYBOOKS_DIR'], playbook_name)
+        self.ssh_connection.connect()
+        try:
+            # Check if file exists
+            stdin, stdout, stderr = self.ssh_connection.client.exec_command(f"test -f {remote_path} && echo exists")
+            if stdout.read().decode().strip() != "exists":
+                return False, "Playbook does not exist.", 404
+
+            # If file exists, write to a temporary file and upload it
+            with tempfile.NamedTemporaryFile(delete=False, mode='w+') as temp_file:
+                temp_file.write(new_content)
+                local_path = temp_file.name
+
+            self.ssh_connection.upload_file(local_path, remote_path)
+            return True, "Playbook modified successfully.", None
+        except Exception as e:
+            return False, f"Error modifying playbook: {str(e)}", 500
+        finally:
+            self.ssh_connection.disconnect()
+            if 'local_path' in locals():
+                os.remove(local_path)

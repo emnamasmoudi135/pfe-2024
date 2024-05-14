@@ -4,6 +4,21 @@ from flask import jsonify , request
 from app import app, proxmox_api ,terraform_api 
 from app.api.ansible.ansible import Ansible
 
+@app.route('/modify-playbook/<playbook_name>', methods=['PUT'])
+def modify_playbook(playbook_name):
+    data = request.get_json()
+    new_content = data.get('new_content')
+    if not new_content:
+        return jsonify({'error': 'New content is required'}), 400
+
+    ansible_instance = Ansible()
+    success, message, status_code = ansible_instance.modify_playbook(playbook_name, new_content)
+    if success:
+        return jsonify({'message': message}), 200
+    else:
+        return jsonify({'error': message}), status_code or 500
+
+
 @app.route('/add-playbook/<playbook_name>', methods=['POST'])
 def add_playbook(playbook_name):
     # Récupérer le contenu du playbook depuis le corps de la requête
