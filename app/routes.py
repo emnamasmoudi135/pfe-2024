@@ -4,46 +4,109 @@ from flask import jsonify , request
 from app import app, proxmox_api ,terraform_api 
 from app.api.ansible.ansible import Ansible
 
+
+@app.route('/list-playbooks', methods=['GET'])
+def list_playbooks():
+    """
+    List all playbooks available on the remote server.
+
+    This endpoint retrieves a list of all the Ansible playbooks that are
+    stored in the specified directory on the remote server. It returns the list
+    as a JSON response.
+
+    Returns:
+        A JSON response containing an array of playbook names or an error message.
+
+    Example Response:
+        - Success: 200 OK, {"playbooks": ["site.yml", "nginx.yml"]}
+        - Error: 500 Internal Server Error, {"error": "Failed to retrieve playbooks"}
+    """
+    ansible_instance = Ansible()
+    return jsonify(ansible_instance.list_playbooks())
+
+  
+
 @app.route('/modify-playbook/<playbook_name>', methods=['PUT'])
 def modify_playbook(playbook_name):
+    """
+    Modify an existing playbook by uploading new content.
+
+    This endpoint accepts new content for a specified playbook and updates it
+    on the remote server. The playbook to be modified is specified in the URL,
+    and the new content must be provided in the JSON payload.
+
+    Args:
+        playbook_name (str): The name of the playbook to modify.
+
+    Returns:
+        A JSON response indicating whether the modification was successful or not.
+
+    Example Request Body:
+        - {"new_content": "---\n- hosts: all\n  tasks:\n    - name: update"}
+
+    Example Response:
+        - Success: 200 OK, {"message": "Playbook updated successfully."}
+        - Error: 400 Bad Request, {"error": "New content is required"}
+    """
     data = request.get_json()
     new_content = data.get('new_content')
     if not new_content:
         return jsonify({'error': 'New content is required'}), 400
 
     ansible_instance = Ansible()
-    success, message, status_code = ansible_instance.modify_playbook(playbook_name, new_content)
-    if success:
-        return jsonify({'message': message}), 200
-    else:
-        return jsonify({'error': message}), status_code or 500
+    return jsonify(ansible_instance.modify_playbook(playbook_name, new_content))
 
 
 @app.route('/add-playbook/<playbook_name>', methods=['POST'])
 def add_playbook(playbook_name):
-    # Récupérer le contenu du playbook depuis le corps de la requête
+    """
+    Add a new playbook to the remote server.
+
+    This endpoint uploads a new playbook to the remote server. The name of the
+    new playbook and its content must be provided. The content of the playbook
+    should be included in the request's JSON body.
+
+    Args:
+        playbook_name (str): The name of the playbook to be added.
+
+    Returns:
+        A JSON response indicating the result of the operation.
+
+    Example Request Body:
+        - {"content": "---\n- hosts: all\n  tasks:\n    - name: install nginx"}
+
+    Example Response:
+        - Success: 200 OK, {"message": "Playbook added successfully."}
+        - Error: 400 Bad Request, {"error": "Playbook content is required"}
+    """
     playbook_content = request.json.get('content')
-    
     if not playbook_content:
         return jsonify({'error': 'Playbook content is required'}), 400
-    
-    # Créer une instance d'Ansible pour gérer le déploiement
-    ansible = Ansible()
-    
-    # Déployer le playbook en passant directement le contenu
-    result = ansible.add_and_deploy_playbook(playbook_name, playbook_content)
-    return jsonify({'message': result})
 
+    ansible = Ansible()
+    return jsonify(ansible.add_and_deploy_playbook(playbook_name, playbook_content))
+
+  
 @app.route('/execute-playbook/<playbook_name>', methods=['POST'])
 def execute_playbook(playbook_name):
-    # Créer une instance d'Ansible pour gérer l'exécution
+    """
+    Execute a playbook that is already deployed on the remote server.
+
+    This endpoint triggers the execution of a specified playbook that exists on
+    the remote server. The name of the playbook to execute is provided in the URL.
+
+    Args:
+        playbook_name (str): The name of the playbook to execute.
+
+    Returns:
+        A JSON response with the output or result of the playbook execution.
+
+    Example Response:
+        - Success: 200 OK, {"message": "Playbook executed successfully."}
+        - Error: 500 Internal Server Error, {"error": "Failed to execute playbook"}
+    """
     ansible = Ansible()
-    
-    # Exécuter le playbook
-    result = ansible.execute_playbook(playbook_name)
-    return jsonify({'message': result})
-
-
+    return jsonify(ansible.execute_playbook(playbook_name))
 
 
 @app.route('/login-proxmox')

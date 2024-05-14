@@ -113,3 +113,29 @@ class Ansible:
             self.ssh_connection.disconnect()
             if 'local_path' in locals():
                 os.remove(local_path)
+                
+                
+    def list_playbooks(self) -> tuple[bool, Optional[list[str]], Optional[int]]:
+        """
+        List all Ansible playbooks in the remote directory.
+
+        Returns:
+            Tuple[bool, Optional[List[str]], Optional[int]]: (success, list of playbooks, status_code)
+        """
+        playbook_dir = current_app.config['REMOTE_PLAYBOOKS_DIR']
+        self.ssh_connection.connect()
+        try:
+            # Listing command adjusted to your SSH setup and playbook directory structure
+            stdin, stdout, stderr = self.ssh_connection.client.exec_command(f"ls {playbook_dir}/*.yml")
+            error = stderr.read().decode()
+            if error:
+                return False, None, 500
+
+            playbooks = stdout.read().decode().strip().split('\n')
+            # Cleanup filenames to return only the names, not full paths
+            playbooks = [os.path.basename(pb) for pb in playbooks]
+            return True, playbooks, None
+        except Exception as e:
+            return False, None, 500
+        finally:
+            self.ssh_connection.disconnect()
