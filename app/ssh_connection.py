@@ -3,11 +3,10 @@ from flask import current_app
 
 class SSHConnection:
     def __init__(self):
-        # Utilisation de current_app pour accéder à la configuration de l'application
         self.hostname = current_app.config['SSH_HOSTNAME']
         self.username = current_app.config['SSH_USERNAME']
         self.password = current_app.config['SSH_PASSWORD']
-        self.port = int(current_app.config['SSH_PORT'])  # Assure-toi que le port est un entier
+        self.port = int(current_app.config['SSH_PORT'])
         self.client = None
         self.sftp = None
 
@@ -25,3 +24,6 @@ class SSHConnection:
 
     def upload_file(self, local_path, remote_path):
         self.sftp.put(local_path, remote_path)
+
+
+

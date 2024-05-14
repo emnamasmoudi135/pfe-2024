@@ -4,6 +4,33 @@ from flask import jsonify , request
 from app import app, proxmox_api ,terraform_api 
 from app.api.ansible.ansible import Ansible
 
+@app.route('/add-playbook/<playbook_name>', methods=['POST'])
+def add_playbook(playbook_name):
+    # Récupérer le contenu du playbook depuis le corps de la requête
+    playbook_content = request.json.get('content')
+    
+    if not playbook_content:
+        return jsonify({'error': 'Playbook content is required'}), 400
+    
+    # Créer une instance d'Ansible pour gérer le déploiement
+    ansible = Ansible()
+    
+    # Déployer le playbook en passant directement le contenu
+    result = ansible.add_and_deploy_playbook(playbook_name, playbook_content)
+    return jsonify({'message': result})
+
+@app.route('/execute-playbook/<playbook_name>', methods=['POST'])
+def execute_playbook(playbook_name):
+    # Créer une instance d'Ansible pour gérer l'exécution
+    ansible = Ansible()
+    
+    # Exécuter le playbook
+    result = ansible.execute_playbook(playbook_name)
+    return jsonify({'message': result})
+
+
+
+
 @app.route('/login-proxmox')
 def login_proxmox():
     """
@@ -121,20 +148,6 @@ def terraform_destroy():
 
 
 
-
-
-
-# @app.route('/deploy-playbook/<playbook_name>', methods=['POST'])
-# def deploy_playbook(playbook_name):
-#     ansible = Ansible()  # Créer une nouvelle instance de la classe Ansible
-#     result = ansible.deploy_playbook(playbook_name,app)  # Appel de la méthode d'instance
-#     return jsonify({'message': result})
-
-# @app.route('/execute-playbook/<playbook_name>', methods=['POST'])
-# def execute_playbook(playbook_name):
-#     ansible = Ansible()  # Créer une nouvelle instance de la classe Ansible
-#     result = ansible.execute_playbook(playbook_name,app)  # Appel de la méthode d'instance
-#     return jsonify({'message': result})
 
 
 
