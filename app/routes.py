@@ -5,6 +5,29 @@ from app import app, proxmox_api ,terraform_api
 from app.api.ansible.ansible import Ansible
 
 
+@app.route('/delete-playbook/<playbook_name>', methods=['DELETE'])
+def delete_playbook(playbook_name):
+    """
+    Delete a playbook from the remote server.
+
+    This endpoint deletes a specified playbook by name. If the playbook does not exist,
+    it returns an error. The deletion operation is reflected directly on the remote server.
+
+    Args:
+        playbook_name (str): The name of the playbook to delete.
+
+    Returns:
+        A JSON response indicating whether the deletion was successful or not.
+
+    Example Response:
+        - Success: 200 OK, {"message": "Playbook deleted successfully."}
+        - Error: 404 Not Found, {"error": "Playbook does not exist."}
+        - Error: 500 Internal Server Error, {"error": "Error deleting playbook"}
+    """
+    ansible_instance = Ansible()
+    return jsonify(ansible_instance.delete_playbook(playbook_name))
+  
+
 @app.route('/list-playbooks', methods=['GET'])
 def list_playbooks():
     """

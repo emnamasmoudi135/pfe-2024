@@ -139,3 +139,34 @@ class Ansible:
             return False, None, 500
         finally:
             self.ssh_connection.disconnect()
+
+
+    def delete_playbook(self, playbook_name: str) -> Tuple[bool, Optional[str], Optional[int]]:
+        """
+        Delete an existing playbook from the remote server.
+
+        Args:
+            playbook_name (str): The name of the playbook to be deleted.
+
+        Returns:
+            Tuple[bool, Optional[str], Optional[int]]: (success, message, status_code)
+        """
+        remote_path = os.path.join(current_app.config['REMOTE_PLAYBOOKS_DIR'], playbook_name)
+        self.ssh_connection.connect()
+        try:
+            # Check if the playbook exists
+            stdin, stdout, stderr = self.ssh_connection.client.exec_command(f"test -f {remote_path} && echo exists")
+            if stdout.read().decode().strip() != "exists":
+                return False, "Playbook does not exist.", 404
+
+            # Delete the playbook if it exists
+            stdin, stdout, stderr = self.ssh_connection.client.exec_command(f"rm {remote_path}")
+            error = stderr.read().decode()
+            if error:
+                return False, error, 500
+
+            return True, "Playbook deleted successfully.", None
+        except Exception as e:
+            return False, f"Error deleting playbook: {str(e)}", 500
+        finally:
+            self.ssh_connection.disconnect()
