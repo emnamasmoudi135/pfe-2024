@@ -5,6 +5,35 @@ from app import app, proxmox_api ,terraform_api
 from app.api.ansible.ansible import Ansible
 
 
+@app.route('/modify-hosts', methods=['PUT'])
+def modify_hosts():
+    """
+    Modify the hosts.ini file used by Ansible.
+
+    This endpoint accepts new content for the hosts.ini file and updates it
+    on the remote server. The new content must be provided in the JSON payload.
+
+    Returns:
+        A JSON response indicating whether the modification was successful or not.
+
+    Example Request Body:
+        - {"new_content": "[webservers]\nweb1 ansible_host=192.168.1.100\n"}
+
+    Example Response:
+        - Success: 200 OK, {"message": "hosts.ini modified successfully."}
+        - Error: 400 Bad Request, {"error": "New content is required"}
+        - Error: 404 Not Found, {"error": "hosts.ini does not exist."}
+        - Error: 500 Internal Server Error, {"error": "Error modifying hosts.ini"}
+    """
+    data = request.get_json()
+    new_content = data.get('new_content')
+    if not new_content:
+        return jsonify({'error': 'New content is required'}), 400
+
+    ansible_instance = Ansible()
+    return jsonify(ansible_instance.modify_hosts_file(new_content))
+
+
 @app.route('/delete-playbook/<playbook_name>', methods=['DELETE'])
 def delete_playbook(playbook_name):
     """

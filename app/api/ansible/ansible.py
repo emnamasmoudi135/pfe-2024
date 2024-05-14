@@ -170,3 +170,28 @@ class Ansible:
             return False, f"Error deleting playbook: {str(e)}", 500
         finally:
             self.ssh_connection.disconnect()
+
+    def modify_hosts_file(self, new_content: str) -> Tuple[bool, Optional[str], Optional[int]]:
+        """
+        Modify the hosts.ini file on the remote server.
+        """
+        hosts_path = current_app.config['INVENTORY_PATH']  # Ensure this is correctly fetching the path
+        self.ssh_connection.connect()
+        try:
+            # Command to check if the hosts.ini file exists
+            stdin, stdout, stderr = self.ssh_connection.client.exec_command(f"test -f {hosts_path} && echo exists")
+            if stdout.read().decode().strip() != "exists":
+                return False, "hosts.ini does not exist.", 404
+
+            # Command to write new content to hosts.ini
+            with tempfile.NamedTemporaryFile('w', delete=False) as tmp_file:
+                tmp_file.write(new_content)
+                local_path = tmp_file.name
+
+            self.ssh_connection.upload_file(local_path, hosts_path)
+            os.remove(local_path)
+            return True, "hosts.ini modified successfully.", None
+        except Exception as e:
+            return False, f"Error modifying hosts.ini: {str(e)}", 500
+        finally:
+            self.ssh_connection.disconnect()
