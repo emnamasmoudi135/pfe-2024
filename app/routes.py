@@ -4,6 +4,28 @@ from flask import jsonify , request
 from app import app, proxmox_api ,terraform_api 
 from app.api.ansible.ansible import Ansible
 
+@app.route('/playbook-detail/<playbook_name>', methods=['GET'])
+def playbook_detail(playbook_name):
+    """
+    API endpoint to retrieve the content of a specific playbook.
+
+    This endpoint allows clients to view the content of an Ansible playbook by specifying
+    its name. If the playbook exists, it returns the content; otherwise, it returns an error.
+
+    Args:
+        playbook_name (str): The name of the playbook whose content is to be retrieved.
+
+    Returns:
+        A JSON response containing the playbook content or an error message.
+
+    Example Response:
+        - Success: 200 OK, {"content": "---\n- hosts: all\n  tasks:\n    ..."}
+        - Error: 404 Not Found, {"error": "Playbook does not exist."}
+        - Error: 500 Internal Server Error, {"error": "Error retrieving playbook"}
+    """
+    ansible_instance = Ansible()
+    return jsonify(ansible_instance.playbook_detail(playbook_name))
+
 
 @app.route('/modify-hosts', methods=['PUT'])
 def modify_hosts():

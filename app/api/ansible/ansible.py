@@ -195,3 +195,31 @@ class Ansible:
             return False, f"Error modifying hosts.ini: {str(e)}", 500
         finally:
             self.ssh_connection.disconnect()
+
+
+    def playbook_detail(self, playbook_name: str) -> Tuple[bool, Optional[str], Optional[int]]:
+        """
+        Retrieve the content of a specified playbook from the remote server.
+
+        Args:
+            playbook_name (str): The name of the playbook to retrieve.
+
+        Returns:
+            Tuple[bool, Optional[str], Optional[int]]: (success, content or error message, status code)
+        """
+        playbook_path = os.path.join(current_app.config['REMOTE_PLAYBOOKS_DIR'], playbook_name)
+        self.ssh_connection.connect()
+        try:
+            # Check if the playbook exists
+            stdin, stdout, stderr = self.ssh_connection.client.exec_command(f"test -f {playbook_path} && echo exists")
+            if stdout.read().decode().strip() != "exists":
+                return False, "Playbook does not exist.", 404
+
+            # Read the playbook content if it exists
+            stdin, stdout, stderr = self.ssh_connection.client.exec_command(f"cat {playbook_path}")
+            content = stdout.read().decode()
+            return True, content, None
+        except Exception as e:
+            return False, f"Error retrieving playbook: {str(e)}", 500
+        finally:
+            self.ssh_connection.disconnect()
