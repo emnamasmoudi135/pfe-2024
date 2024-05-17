@@ -13,3 +13,4 @@ class Config(object):
     REMOTE_PLAYBOOKS_DIR=os.environ.get('REMOTE_PLAYBOOKS_DIR')
     INVENTORY_PATH=os.environ.get('INVENTORY_PATH')
     SSH_PORT=int(os.environ.get('SSH_PORT'))
+    OPENAI_API_KEY =os.environ.get('OPENAI_API_KEY')

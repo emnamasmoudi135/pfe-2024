@@ -223,3 +223,59 @@ class Ansible:
             return False, f"Error retrieving playbook: {str(e)}", 500
         finally:
             self.ssh_connection.disconnect()
+
+    # def generate_playbook_from_ai(self,tool):
+    #     """
+    #     Génère un playbook Ansible en utilisant le modèle de langage GPT. 
+    #     """
+    
+    #     try:
+    #         openai.api_key = current_app.config['OPENAI_API_KEY']
+    #         response = openai.ChatCompletion.create(
+    #             model="gpt-3.5-turbo",
+    #             messages=[
+    #                 {"role": "system", "content": "You are a helpful assistant."},
+    #                 {"role": "user", "content": f"Write an Ansible playbook for installing and configuring {tool}."}
+    #             ]
+    #         )
+    #         playbook_content = response['choices'][0]['message']['content']
+    #         return True, playbook_content
+    #     except Exception as e:
+    #         return False, str(e)
+    
+
+
+
+    # def deploy_generated_playbook(tool, playbook_content):
+    #     ansible = Ansible()
+    #     playbook_name = f"{tool}.yml"
+    #     success, message, _ = ansible.add_and_deploy_playbook(playbook_name, playbook_content)
+    #     if success:
+    #         return jsonify({'success': True, 'message': message}), 200
+    #     else :
+    #         return jsonify({'success': False, 'message': message}), 400
+        
+
+
+
+
+
+
+# import requests
+
+# api_key = 'sk-proj-UvXWZxoOYmgSCux7ocPsT3BlbkFJBfBVC1CwteGKfuSeopGO'
+# headers = {
+#     'Authorization': f'Bearer {api_key}'
+# }
+
+# data = {
+#     'model': 'gpt-3.5-turbo',
+#     'prompt': 'Hello, world!',
+#     'max_tokens': 5
+# }
+
+# response = requests.post('https://api.openai.com/v1/completions', headers=headers, json=data)
+# print(response.json())
+
+import flask
+print(flask.__version__)
