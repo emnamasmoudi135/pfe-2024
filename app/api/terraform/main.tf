@@ -19,7 +19,7 @@ provider "proxmox" {
 resource "proxmox_vm_qemu" "testServer" {
   # VM General Settings
   target_node = "proxmox-server"
-  vmid        = 110  # L'ID de la nouvelle VM que vous souhaitez créer
+  vmid        = 1666  # L'ID de la nouvelle VM que vous souhaitez créer
   name        = "test-vm"
 
   # VM Advanced General Settings

@@ -1,6 +1,7 @@
 # app/config.py
 import os
-
+from dotenv import load_dotenv
+load_dotenv()
 class Config(object):
     PROXMOX_URL = os.environ.get('PROXMOX_URL')
     PROXMOX_USER = os.environ.get('PROXMOX_USER')

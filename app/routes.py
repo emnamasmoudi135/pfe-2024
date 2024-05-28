@@ -3,6 +3,59 @@
 from flask import jsonify , request
 from app import app, proxmox_api ,terraform_api 
 from app.api.ansible.ansible import Ansible
+from flask_cors import CORS
+CORS(app)
+from dotenv import load_dotenv, set_key, unset_key
+import os
+
+
+# Endpoint to get environment variables
+@app.route('/env', methods=['GET'])
+def get_env():
+    env_vars = {
+        "PROXMOX_URL": os.getenv('PROXMOX_URL'),
+        "PROXMOX_USER": os.getenv('PROXMOX_USER'),
+        "PROXMOX_PASSWORD": os.getenv('PROXMOX_PASSWORD'),
+        "TERRAFORM_WORKING_DIR": os.getenv('TERRAFORM_WORKING_DIR'),
+        "SSH_HOSTNAME": os.getenv('SSH_HOSTNAME'),
+        "SSH_USERNAME": os.getenv('SSH_USERNAME'),
+        "SSH_PASSWORD": os.getenv('SSH_PASSWORD'),
+        "LOCAL_PLAYBOOKS_DIR": os.getenv('LOCAL_PLAYBOOKS_DIR'),
+        "REMOTE_PLAYBOOKS_DIR": os.getenv('REMOTE_PLAYBOOKS_DIR'),
+        "INVENTORY_PATH": os.getenv('INVENTORY_PATH'),
+        "SSH_PORT": os.getenv('SSH_PORT'),
+        "OPENAI_API_KEY": os.getenv('OPENAI_API_KEY')
+    }
+    return jsonify(env_vars)
+
+
+
+@app.route('/env', methods=['PUT'])
+def update_env():
+    updates = request.json
+    env_file = os.path.join(app.root_path, '.env')  # Utilisation de app.root_path pour obtenir le chemin racine de l'application
+    try:
+        for key, value in updates.items():
+            set_key(env_file, key, value)
+        load_dotenv(env_file)  # Recharger les variables d'environnement
+        return jsonify({"status": "success"}), 200
+    except Exception as e:
+        return jsonify({"error": f"Error modifying .env file: {str(e)}"}), 500
+
+
+@app.route('/add-playbook/<playbook_name>', methods=['POST'])
+def add_playbook(playbook_name):
+    playbook_content = request.json.get('new_content')
+    if not playbook_content:
+        return jsonify({'error': 'Playbook content is required'}), 400
+
+    ansible = Ansible()
+    success, message, status_code = ansible.add_and_deploy_playbook(playbook_name, playbook_content)
+    if not success:
+        return jsonify({'error': message}), status_code
+    return jsonify({'message': message}), 200
+
+
 
 @app.route('/playbook-detail/<playbook_name>', methods=['GET'])
 def playbook_detail(playbook_name):
@@ -26,34 +79,47 @@ def playbook_detail(playbook_name):
     ansible_instance = Ansible()
     return jsonify(ansible_instance.playbook_detail(playbook_name))
 
-
-@app.route('/modify-hosts', methods=['PUT'])
-def modify_hosts():
+@app.route('/get-hosts-content', methods=['GET'])
+def get_hosts_content():
     """
-    Modify the hosts.ini file used by Ansible.
-
-    This endpoint accepts new content for the hosts.ini file and updates it
-    on the remote server. The new content must be provided in the JSON payload.
+    Get the current content of the hosts.ini file.
 
     Returns:
-        A JSON response indicating whether the modification was successful or not.
-
-    Example Request Body:
-        - {"new_content": "[webservers]\nweb1 ansible_host=192.168.1.100\n"}
-
-    Example Response:
-        - Success: 200 OK, {"message": "hosts.ini modified successfully."}
-        - Error: 400 Bad Request, {"error": "New content is required"}
-        - Error: 404 Not Found, {"error": "hosts.ini does not exist."}
-        - Error: 500 Internal Server Error, {"error": "Error modifying hosts.ini"}
+        A JSON response with the current content of the hosts.ini file.
     """
-    data = request.get_json()
-    new_content = data.get('new_content')
-    if not new_content:
-        return jsonify({'error': 'New content is required'}), 400
-
+    hosts_path = app.config['INVENTORY_PATH']
     ansible_instance = Ansible()
-    return jsonify(ansible_instance.modify_hosts_file(new_content))
+    ansible_instance.ssh_connection.connect()
+    try:
+        stdin, stdout, stderr = ansible_instance.ssh_connection.client.exec_command(f"cat {hosts_path}")
+        content = stdout.read().decode()
+        return jsonify({'content': content}), 200
+    except Exception as e:
+        return jsonify({'error': f"Error retrieving hosts.ini content: {str(e)}"}), 500
+    finally:
+        ansible_instance.ssh_connection.disconnect()
+
+
+@app.route('/modify-hosts', methods=['POST'])
+def modify_hosts():
+    """
+    Modify the content of the hosts.ini file.
+
+    Returns:
+        A JSON response indicating success or failure.
+    """
+    new_content = request.json.get('new_content')
+    hosts_path = app.config['INVENTORY_PATH']
+    ansible_instance = Ansible()
+    ansible_instance.ssh_connection.connect()
+    try:
+        stdin, stdout, stderr = ansible_instance.ssh_connection.client.exec_command(f"echo '{new_content}' > {hosts_path}")
+        stdout.read()
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        return jsonify({'error': f"Error modifying hosts.ini content: {str(e)}"}), 500
+    finally:
+        ansible_instance.ssh_connection.disconnect()
 
 
 @app.route('/delete-playbook/<playbook_name>', methods=['DELETE'])
@@ -78,7 +144,6 @@ def delete_playbook(playbook_name):
     ansible_instance = Ansible()
     return jsonify(ansible_instance.delete_playbook(playbook_name))
   
-
 @app.route('/list-playbooks', methods=['GET'])
 def list_playbooks():
     """
@@ -98,67 +163,19 @@ def list_playbooks():
     ansible_instance = Ansible()
     return jsonify(ansible_instance.list_playbooks())
 
-  
+
+
 
 @app.route('/modify-playbook/<playbook_name>', methods=['PUT'])
 def modify_playbook(playbook_name):
-    """
-    Modify an existing playbook by uploading new content.
-
-    This endpoint accepts new content for a specified playbook and updates it
-    on the remote server. The playbook to be modified is specified in the URL,
-    and the new content must be provided in the JSON payload.
-
-    Args:
-        playbook_name (str): The name of the playbook to modify.
-
-    Returns:
-        A JSON response indicating whether the modification was successful or not.
-
-    Example Request Body:
-        - {"new_content": "---\n- hosts: all\n  tasks:\n    - name: update"}
-
-    Example Response:
-        - Success: 200 OK, {"message": "Playbook updated successfully."}
-        - Error: 400 Bad Request, {"error": "New content is required"}
-    """
-    data = request.get_json()
-    new_content = data.get('new_content')
-    if not new_content:
-        return jsonify({'error': 'New content is required'}), 400
-
     ansible_instance = Ansible()
-    return jsonify(ansible_instance.modify_playbook(playbook_name, new_content))
+    success, message, status_code = ansible_instance.modify_playbook(playbook_name)
+    if success:
+        return jsonify({'message': message}), 200
+    return jsonify({'error': message}), status_code
 
 
-@app.route('/add-playbook/<playbook_name>', methods=['POST'])
-def add_playbook(playbook_name):
-    """
-    Add a new playbook to the remote server.
-
-    This endpoint uploads a new playbook to the remote server. The name of the
-    new playbook and its content must be provided. The content of the playbook
-    should be included in the request's JSON body.
-
-    Args:
-        playbook_name (str): The name of the playbook to be added.
-
-    Returns:
-        A JSON response indicating the result of the operation.
-
-    Example Request Body:
-        - {"content": "---\n- hosts: all\n  tasks:\n    - name: install nginx"}
-
-    Example Response:
-        - Success: 200 OK, {"message": "Playbook added successfully."}
-        - Error: 400 Bad Request, {"error": "Playbook content is required"}
-    """
-    playbook_content = request.json.get('content')
-    if not playbook_content:
-        return jsonify({'error': 'Playbook content is required'}), 400
-
-    ansible = Ansible()
-    return jsonify(ansible.add_and_deploy_playbook(playbook_name, playbook_content))
+  
 
   
 @app.route('/execute-playbook/<playbook_name>', methods=['POST'])
@@ -257,6 +274,16 @@ def vm_status_route(node, vmid):
         JSON response with the status of the VM if successful, or an error message if not.
     """
     return jsonify(proxmox_api.get_vm_status(f'/nodes/{node}/qemu/{vmid}/status/current'))
+
+
+
+@app.route('/proxmox/nodes/<string:node_name>/statistics', methods=['GET'])
+def get_proxmox_node_statistics(node_name):
+    success, data, status_code = proxmox_api.get_node_statistics(f'/nodes/{node_name}/status')
+    if success:
+        return jsonify(data), 200
+    else:
+        return jsonify({'error': 'Failed to retrieve node statistics', 'status': status_code}), status_code
 
 
 @app.route('/terraform/init', methods=['GET'])

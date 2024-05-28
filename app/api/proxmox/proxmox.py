@@ -87,6 +87,10 @@ class ProxmoxAPI(BaseProxmoxAPI):
 
     def get_vm_status(self, url: str) -> Tuple[bool, Optional[Dict], Optional[int]]:
         return self.make_request('GET', url)
+    
+    def get_node_statistics(self, url:str) -> Tuple[bool, Optional[Dict], Optional[int]]:
+        return self.make_request('GET', url)
+
 
 def get_proxmox_api(app: Any) -> ProxmoxAPI:
     """
