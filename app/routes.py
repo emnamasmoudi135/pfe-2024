@@ -199,6 +199,7 @@ def execute_playbook(playbook_name):
     ansible = Ansible()
     return jsonify(ansible.execute_playbook(playbook_name))
 
+# proxmox routes
 
 @app.route('/login-proxmox')
 def login_proxmox():
@@ -286,6 +287,42 @@ def get_proxmox_node_statistics(node_name):
         return jsonify({'error': 'Failed to retrieve node statistics', 'status': status_code}), status_code
 
 
+@app.route('/vms/<string:node>/<int:vmid>/start', methods=['POST'])
+def start_vm_route(node, vmid):
+    """
+    Start a virtual machine on a specified Proxmox node.
+    Args:
+        node (str): The name of the Proxmox node.
+        vmid (int): The identifier of the virtual machine to be started.
+    Returns:
+        JSON response indicating whether the VM was successfully started or an error occurred.
+    """
+    success, data, status_code = proxmox_api.start_vm(f'/nodes/{node}/qemu/{vmid}/status/start')
+    if success:
+        return jsonify(data), 200
+    else:
+        return jsonify({'error': 'Failed to start VM', 'status_code': status_code}), status_code
+
+@app.route('/vms/<string:node>/<int:vmid>/stop', methods=['POST'])
+def stop_vm_route(node, vmid):
+    """
+    Stop a virtual machine on a specified Proxmox node.
+    Args:
+        node (str): The name of the Proxmox node.
+        vmid (int): The identifier of the virtual machine to be stopped.
+    Returns:
+        JSON response indicating whether the VM was successfully stopped or an error occurred.
+    """
+    success, data, status_code = proxmox_api.stop_vm(f'/nodes/{node}/qemu/{vmid}/status/stop')
+    if success:
+        return jsonify(data), 200
+    else:
+        return jsonify({'error': 'Failed to stop VM', 'status_code': status_code}), status_code
+
+
+
+# terraform routes 
+
 @app.route('/terraform/init', methods=['GET'])
 def terraform_init():
     """
@@ -326,6 +363,31 @@ def terraform_destroy():
     return jsonify(result)
 
 
+@app.route('/terraform/config', methods=['GET'])
+def get_terraform_config():
+    """
+    Retrieve the current Terraform configuration file content.
+    """
+    try:
+        with open(os.path.join(terraform_api.working_dir, 'main.tf'), 'r') as file:
+            content = file.read()
+        return jsonify({'success': True, 'content': content})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/terraform/config', methods=['POST'])
+def update_terraform_config():
+    """
+    Update the Terraform configuration file with the provided content.
+    """
+    data = request.json
+    new_content = data.get('content')
+    try:
+        with open(os.path.join(terraform_api.working_dir, 'main.tf'), 'w') as file:
+            file.write(new_content)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 
 

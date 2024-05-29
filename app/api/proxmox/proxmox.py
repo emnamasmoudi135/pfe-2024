@@ -90,6 +90,34 @@ class ProxmoxAPI(BaseProxmoxAPI):
     
     def get_node_statistics(self, url:str) -> Tuple[bool, Optional[Dict], Optional[int]]:
         return self.make_request('GET', url)
+    
+
+    def start_vm(self, url: str) -> Tuple[bool, Optional[Dict], Optional[int]]:
+        """
+        Start a VM.
+
+        Args:
+            url: API endpoint URL to start the VM.
+
+        Returns:
+            tuple: (success, data or None, status_code)
+        """
+        return self.make_request('POST', url)
+
+    def stop_vm(self, url: str) -> Tuple[bool, Optional[Dict], Optional[int]]:
+        """
+        Stop a VM.
+
+        Args:
+            url: API endpoint URL to stop the VM.
+
+        Returns:
+            tuple: (success, data or None, status_code)
+        """
+        return self.make_request('POST', url)
+
+
+
 
 
 def get_proxmox_api(app: Any) -> ProxmoxAPI:
@@ -103,3 +131,10 @@ def get_proxmox_api(app: Any) -> ProxmoxAPI:
         ProxmoxAPI: A new instance of ProxmoxAPI.
     """
     return ProxmoxAPI(app)
+
+
+
+
+
+
+
