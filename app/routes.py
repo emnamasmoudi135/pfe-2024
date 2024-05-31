@@ -7,7 +7,31 @@ from flask_cors import CORS
 CORS(app)
 from dotenv import load_dotenv, set_key, unset_key
 import os
+from app.api.userManagement.auth import Auth
 
+#authentification routes :
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    return Auth.signup()
+
+@app.route('/login', methods=['POST'])
+def login():
+    return Auth.login()
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    return Auth.logout()
+
+@app.route('/verify-email', methods=['GET'])
+def verify_email():
+    return Auth.verify_email()
+
+@app.route('/confirm-login', methods=['GET'])
+def confirm_login():
+    return Auth.confirm_login()
+
+#ansible routes
 
 # Endpoint to get environment variables
 @app.route('/env', methods=['GET'])
