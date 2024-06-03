@@ -1,8 +1,7 @@
-# app/api/userManagement/auth.py
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from flask import request, jsonify, current_app as app
+from flask import request, jsonify, current_app as app, redirect
 from app.api.userManagement.user import User
 import jwt
 import datetime
@@ -46,7 +45,7 @@ class Auth:
         user = User()
         success, message, token = user.create_user(username, email, password, role)
         if success:
-            text = f"Please verify your email by clicking the following link: http://localhost:5000/verify-email?token={token}"
+            text = f"Please verify your email by clicking the following link: http://127.0.0.1:5000/verify-email?token={token}"
             Auth.send_verification_email(email, token, "Email Verification", text)
             return jsonify({"message": message}), 201
         return jsonify({"error": message}), 400
@@ -64,12 +63,13 @@ class Auth:
 
         if not user_data.get("is_email_verified"):
             return jsonify({"error": "Email not verified. Please check your email."}), 401
-        
+
         verification_token = user.create_login_token(email)
-        text = f"Please confirm your login by clicking the following link: http://localhost:5000/confirm-login?token={verification_token}"
+        text = f"Please confirm your login by clicking the following link: http://127.0.0.1:5000/confirm-login?token={verification_token}"
         Auth.send_verification_email(email, verification_token, "Confirm Login", text)
 
         return jsonify({"message": "Please confirm your login via the email sent."}), 200
+
 
     @staticmethod
     def confirm_login():
@@ -77,12 +77,16 @@ class Auth:
         user = User()
         user_data = user.verify_login_token(token)
         if user_data:
-            token = jwt.encode({
+            jwt_token = jwt.encode({
                 'user_id': str(user_data['_id']),
+                'role': user_data['role'],  # Inclure le rôle
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)
             }, app.config['SECRET_KEY'], algorithm="HS256")
 
-            return jsonify({'token': token}), 200
+            response = redirect("http://127.0.0.1:3000/dashboard")
+            response.set_cookie('token', jwt_token)
+            return response
+
         return jsonify({"error": "Invalid or expired login confirmation token."}), 400
 
     @staticmethod
