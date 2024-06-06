@@ -102,3 +102,4 @@ class Auth:
         response = jsonify({"message": "Successfully logged out"})
         response.set_cookie('token', '', expires=0)  # Remove the token cookie
         return response, 200
+
