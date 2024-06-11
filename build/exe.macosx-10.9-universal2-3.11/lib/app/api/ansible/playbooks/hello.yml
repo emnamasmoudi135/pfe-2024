@@ -1,0 +1,7 @@
+---
+- name: Affichage d'un message
+  hosts: all
+  tasks:
+    - name: Afficher un message
+      debug:
+        msg: "Bonjour, ceci est un message affiché par Ansible."

@@ -22,3 +22,4 @@ class Config(object):
     SMTP_PORT = int(os.environ.get('SMTP_PORT'))
     SMTP_USERNAME = os.environ.get('SMTP_USERNAME')
     SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
+    PROMETHEUS_URL= os.environ.get('PROMETHEUS_URL')

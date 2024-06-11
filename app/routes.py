@@ -8,7 +8,11 @@ CORS(app)
 from dotenv import load_dotenv, set_key, unset_key
 import os
 from app.api.userManagement.auth import Auth
-
+from app.api.userManagement.auth import User
+from app.api.prometheus.dashboardProxmox import (
+    get_cpu_usage, get_memory_usage, get_disk_usage, get_network_usage,
+    get_system_load, get_uptime
+)
 
 #authentification routes :
 
@@ -415,13 +419,51 @@ def update_terraform_config():
         return jsonify({'success': False, 'error': str(e)})
 
 
+# Prometheus metrics routes
+@app.route('/metrics/cpu', methods=['GET'])
+def cpu_usage():
+    return get_cpu_usage()
+
+@app.route('/metrics/memory', methods=['GET'])
+def memory_usage():
+    return get_memory_usage()
+
+@app.route('/metrics/disk', methods=['GET'])
+def disk_usage():
+    return get_disk_usage()
+
+@app.route('/metrics/network', methods=['GET'])
+def network_usage():
+    return get_network_usage()
+
+@app.route('/metrics/system_load', methods=['GET'])
+def system_load():
+    return get_system_load()
+
+@app.route('/metrics/uptime', methods=['GET'])
+def uptime():
+    return get_uptime()
 
 
+#  user managment 
 
 
+@app.route('/users', methods=['GET'])
+def get_users():
+    user = User()
+    users = user.get_all_users()
+    return jsonify(users), 200
 
+# Route to update user role
+@app.route('/users/<user_id>/role', methods=['PUT'])
+def update_user_role(user_id):
+    data = request.get_json()
+    new_role = data.get('role')
+    if not new_role:
+        return jsonify({"error": "Role is required"}), 400
 
-
-
-
+    user = User()
+    if user.update_user_role(user_id, new_role):
+        return jsonify({"message": "Role updated successfully"}), 200
+    return jsonify({"error": "Failed to update role"}), 400
 
