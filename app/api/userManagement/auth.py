@@ -6,6 +6,7 @@ from flask import request, jsonify, redirect, current_app as app
 from app.api.userManagement.user import User
 from flask_jwt_extended import create_access_token
 import datetime
+from flask_jwt_extended import create_access_token
 
 class Auth:
     @staticmethod
@@ -51,42 +52,21 @@ class Auth:
             return jsonify({"message": message}), 201
         return jsonify({"error": message}), 400
 
-    @staticmethod
-    def login():
-        data = request.get_json()
-        email = data.get('email')
-        password = data.get('password')
 
-        user = User()
-        user_data = user.find_user_by_email(email)
-        if not user_data or not user.verify_password(user_data, password):
-            return jsonify({"error": "Invalid email or password"}), 401
-
-        if not user_data.get("is_email_verified"):
-            return jsonify({"error": "Email not verified. Please check your email."}), 401
-
-        verification_token = user.create_login_token(email)
-        print(f"Generated login verification token: {verification_token}")
-        text = f"Please confirm your login by clicking the following link: http://127.0.0.1:5000/confirm-login?token={verification_token}"
-        Auth.send_verification_email(email, verification_token, "Confirm Login", text)
-
-        return jsonify({"message": "Please confirm your login via the email sent."}), 200
-    
 
     @staticmethod
     def confirm_login():
         token = request.args.get('token')
-        print(f"Received token: {token}")
         user = User()
         user_data = user.verify_login_token(token)
         if user_data:
             jwt_token = create_access_token(identity={"user_id": str(user_data['_id']), "role": user_data['role']})
-            print(f"Generated JWT token: {jwt_token}")
-            # Redirige vers le tableau de bord avec le token en tant que paramètre de l'URL
             return redirect(f"http://127.0.0.1:3000/dashboard?token={jwt_token}")
-
-        print("Invalid or expired login confirmation token.")
         return jsonify({"error": "Invalid or expired login confirmation token."}), 400
+
+
+
+
 
     @staticmethod
     def verify_email():
@@ -101,3 +81,31 @@ class Auth:
         response = jsonify({"message": "Successfully logged out"})
         response.set_cookie('token', '', expires=0)  # Remove the token cookie
         return response, 200
+
+
+
+
+
+
+
+    @staticmethod
+    def login():
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+
+        user = User()
+        user_data = user.find_user_by_email(email)
+        if not user_data or not user.verify_password(user_data, password):
+            return jsonify({"error": "Invalid email or password"}), 401
+
+        if not user_data.get("is_email_verified"):
+            return jsonify({"error": "Email not verified. Please check your email."}), 401
+
+        jwt_token = create_access_token(identity={"user_id": str(user_data['_id']), "role": user_data['role']})
+        verification_link = f"http://127.0.0.1:3000/auth/login?token={jwt_token}"
+        
+        text = f"Please confirm your login by clicking the following link: {verification_link}"
+        Auth.send_verification_email(email, jwt_token, "Confirm Login", text)
+
+        return jsonify({"message": "Please confirm your login via the email sent."}), 200

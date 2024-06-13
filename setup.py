@@ -1,15 +1,22 @@
-import sys
-from cx_Freeze import setup, Executable
+from setuptools import setup
+import py2app.recipes
 
-base = None
-if sys.platform == "win32":
-    base = "Win32GUI"  # Pour une application GUI
-
-executables = [Executable("run.py", base=base)]
+APP = ['run.py']
+DATA_FILES = []
+OPTIONS = {
+    'argv_emulation': True,
+    'includes': [
+        'flask', 'dotenv', '_cffi_backend', 'cryptography', 'pyo3',
+        'chardet', 'charset_normalizer', 'requests'
+    ],  # Ajoutez ici tous les modules nécessaires
+    'packages': ['app'],
+    'excludes': [],  # Vous pouvez exclure des modules non nécessaires
+    'packages': ['requests', 'app'],  # Inclure les packages
+}
 
 setup(
-    name="infraDrive",
-    version="0.1",
-    description="infra drive to manage test benches",
-    executables=executables,
+    app=APP,
+    data_files=DATA_FILES,
+    options={'py2app': OPTIONS},
+    setup_requires=['py2app'],
 )
