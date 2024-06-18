@@ -14,7 +14,7 @@ from app.api.prometheus.dashboardProxmox import (
     get_system_load, get_uptime
 )
 from app.api.userManagement.decorators import role_required
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required ,  get_jwt_identity
 
 # Authentification routes
 @app.route('/signup', methods=['POST'])
@@ -55,7 +55,18 @@ def get_env():
         "REMOTE_PLAYBOOKS_DIR": os.getenv('REMOTE_PLAYBOOKS_DIR'),
         "INVENTORY_PATH": os.getenv('INVENTORY_PATH'),
         "SSH_PORT": os.getenv('SSH_PORT'),
-        "OPENAI_API_KEY": os.getenv('OPENAI_API_KEY')
+        "OPENAI_API_KEY": os.getenv('OPENAI_API_KEY'),
+        "MONGO_URI" : os.environ.get('MONGO_URI'),
+        "MONGO_DB_NAME" : os.environ.get('MONGO_DB_NAME'),
+        "SECRET_KEY" : os.environ.get('SECRET_KEY'),
+        "SMTP_SERVER" :os.environ.get('SMTP_SERVER'),
+        "SMTP_PORT" : int(os.environ.get('SMTP_PORT')),
+        "SMTP_USERNAME" : os.environ.get('SMTP_USERNAME'),
+        "SMTP_PASSWORD" : os.environ.get('SMTP_PASSWORD'),
+        "PROMETHEUS_URL ": os.environ.get('PROMETHEUS_URL'),
+        "JWT_SECRET_KEY" : os.environ.get('JWT_SECRET_KEY'),
+        "MAIL_USE_SSL" : os.environ.get('MAIL_USE_SSL'),
+        "MAIL_USE_TLS" : os.environ.get('MAIL_USE_TLS')
     }
     return jsonify(env_vars)
 
@@ -96,6 +107,12 @@ def playbook_detail(playbook_name):
 @jwt_required()
 @role_required('admin')
 def get_hosts_content():
+    current_user = get_jwt_identity()
+    app.logger.info(f"Current user: {current_user}")
+    if current_user.get('role') != 'admin':
+        app.logger.info("User does not have admin privileges")
+        return jsonify({"msg": "Forbidden"}), 403
+
     hosts_path = app.config['INVENTORY_PATH']
     ansible_instance = Ansible()
     ansible_instance.ssh_connection.connect()

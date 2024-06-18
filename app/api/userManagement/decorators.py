@@ -9,8 +9,10 @@ def role_required(required_role):
         def wrapper(*args, **kwargs):
             verify_jwt_in_request()
             claims = get_jwt()
-            user_role = claims.get('role', 'user')
+            user_role = claims.get('sub', {}).get('role', 'user')
+            print(f"Role in token: {user_role}")  # Add this line to debug
             if user_role != required_role:
+                print(f"Unauthorized access. Required role: {required_role}, user role: {user_role}")
                 return jsonify({"error": "Unauthorized"}), 403
             return fn(*args, **kwargs)
         return wrapper

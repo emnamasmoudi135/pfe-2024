@@ -1,10 +1,9 @@
-# app/api/userManagement/user.py
 import uuid
 from flask import current_app as app
 from pymongo import MongoClient
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
-from bson import ObjectId  # Ajoutez cet import
+from bson import ObjectId
 
 class User:
     def __init__(self):
@@ -47,19 +46,14 @@ class User:
         token = str(uuid.uuid4())
         expiration_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=15)
         self.login_tokens.insert_one({"email": email, "token": token, "expires_at": expiration_time})
-        print(f"Created login token: {token} with expiration time: {expiration_time}")
         return token
 
     def verify_login_token(self, token):
         token_data = self.login_tokens.find_one({"token": token})
         if token_data and token_data['expires_at'] > datetime.datetime.utcnow():
             user = self.find_user_by_email(token_data['email'])
-            print(f"Verified login token for user: {user}")
             return user
-        print(f"Token {token} is invalid or expired")
         return None
-
-
 
     def get_all_users(self):
         users = list(self.users.find({}, {"username": 1, "email": 1, "role": 1}))
