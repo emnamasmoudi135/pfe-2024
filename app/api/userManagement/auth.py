@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import request, jsonify, redirect, current_app as app 
 from app.api.userManagement.user import User
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token ,  unset_jwt_cookies
 import datetime
 from flask_jwt_extended import create_access_token
 
@@ -76,13 +76,6 @@ class Auth:
             return jsonify({"message": "Email verified successfully."}), 200
         return jsonify({"error": "Invalid verification token."}), 400
 
-    @staticmethod
-    def logout():
-        response = jsonify({"message": "Successfully logged out"})
-        response.set_cookie('token', '', expires=0)  # Remove the token cookie
-        return response, 200
-
-
 
 
 
@@ -109,3 +102,10 @@ class Auth:
         Auth.send_verification_email(email, jwt_token, "Confirm Login", text)
 
         return jsonify({"message": "Please confirm your login via the email sent."}), 200
+
+    @staticmethod
+    def logout():
+        response = jsonify({"message": "Successfully logged out"})
+        unset_jwt_cookies(response)
+        return response, 200
+  

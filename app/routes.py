@@ -75,7 +75,6 @@ def update_env():
 
 @app.route('/add-playbook/<playbook_name>', methods=['POST'])
 @jwt_required()
-@role_required('admin')
 def add_playbook(playbook_name):
     playbook_content = request.json.get('new_content')
     if not playbook_content:
@@ -128,7 +127,6 @@ def modify_hosts():
 
 @app.route('/delete-playbook/<playbook_name>', methods=['DELETE'])
 @jwt_required()
-@role_required('admin')
 def delete_playbook(playbook_name):
     ansible_instance = Ansible()
     return jsonify(ansible_instance.delete_playbook(playbook_name))
@@ -141,7 +139,6 @@ def list_playbooks():
 
 @app.route('/modify-playbook/<playbook_name>', methods=['PUT'])
 @jwt_required()
-@role_required('admin')
 def modify_playbook(playbook_name):
     ansible_instance = Ansible()
     success, message, status_code = ansible_instance.modify_playbook(playbook_name)
@@ -151,7 +148,7 @@ def modify_playbook(playbook_name):
 
 @app.route('/execute-playbook/<playbook_name>', methods=['POST'])
 @jwt_required()
-@role_required('admin')
+
 def execute_playbook(playbook_name):
     ansible = Ansible()
     return jsonify(ansible.execute_playbook(playbook_name))
@@ -170,7 +167,6 @@ def list_vms(node):
 
 @app.route('/create-vm/<string:node>', methods=['POST'])
 @jwt_required()
-@role_required('admin')
 def create_vm_route(node):
     vm_config = request.json
     if not vm_config:
@@ -185,7 +181,6 @@ def destroy_vm_route(node, vmid):
 
 @app.route('/update-vm/<string:node>/<int:vmid>', methods=['PUT'])
 @jwt_required()
-@role_required('admin')
 def update_vm_route(node, vmid):
     vm_config = request.json
     if not vm_config:
@@ -208,7 +203,6 @@ def get_proxmox_node_statistics(node_name):
 
 @app.route('/vms/<string:node>/<int:vmid>/start', methods=['POST'])
 @jwt_required()
-@role_required('admin')
 def start_vm_route(node, vmid):
     success, data, status_code = proxmox_api.start_vm(f'/nodes/{node}/qemu/{vmid}/status/start')
     if success:
@@ -218,7 +212,6 @@ def start_vm_route(node, vmid):
 
 @app.route('/vms/<string:node>/<int:vmid>/stop', methods=['POST'])
 @jwt_required()
-@role_required('admin')
 def stop_vm_route(node, vmid):
     success, data, status_code = proxmox_api.stop_vm(f'/nodes/{node}/qemu/{vmid}/status/stop')
     if success:
@@ -229,21 +222,18 @@ def stop_vm_route(node, vmid):
 # Terraform routes
 @app.route('/terraform/init', methods=['GET'])
 @jwt_required()
-@role_required('admin')
 def terraform_init():
     result = terraform_api.init()
     return jsonify(result)
 
 @app.route('/terraform/apply', methods=['POST'])
 @jwt_required()
-@role_required('admin')
 def terraform_apply():
     result = terraform_api.apply()
     return jsonify(result)
 
 @app.route('/terraform/destroy', methods=['POST'])
 @jwt_required()
-@role_required('admin')
 def terraform_destroy():
     result = terraform_api.destroy()
     return jsonify(result)
