@@ -1,5 +1,5 @@
 # app/routes.py
-from flask import jsonify, request
+from flask import jsonify, redirect, request
 from app import app, proxmox_api, terraform_api, mongo
 from app.api.ansible.ansible import Ansible
 from flask_cors import CORS
@@ -37,6 +37,23 @@ def verify_email():
 @app.route('/confirm-login', methods=['GET'])
 def confirm_login():
     return Auth.confirm_login()
+
+
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    return Auth.forgot_password()
+
+
+@app.route('/reset-password', methods=['POST'])
+def reset_password():
+    return Auth.reset_password()
+
+# app/routes.py
+
+@app.route('/reset-password', methods=['GET'])
+def reset_password_page():
+    token = request.args.get('token')
+    return redirect(f"http://127.0.0.1:3000/reset-password?token={token}")
 
 # Ansible routes
 @app.route('/env', methods=['GET'])

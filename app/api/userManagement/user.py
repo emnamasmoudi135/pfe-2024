@@ -11,6 +11,7 @@ class User:
         self.db = client[app.config['MONGO_DB_NAME']]
         self.users = self.db.users
         self.login_tokens = self.db.login_tokens
+        self.reset_tokens = self.db.reset_tokens  # Initialize the reset_tokens collection
 
     def create_user(self, username, email, password, role="user"):
         if self.users.find_one({"email": email}):
@@ -64,3 +65,17 @@ class User:
     def update_user_role(self, user_id, new_role):
         result = self.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"role": new_role}})
         return result.modified_count > 0
+    
+    def save_reset_token(self, email, reset_token):
+        expiration_time = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+        self.reset_tokens.insert_one({"email": email, "token": reset_token, "expires_at": expiration_time})
+
+    def verify_reset_token(self, token):
+        token_data = self.reset_tokens.find_one({"token": token})
+        if token_data and token_data['expires_at'] > datetime.datetime.utcnow():
+            return token_data['email']
+        return None
+
+    def update_password(self, email, new_password):
+        hashed_password = generate_password_hash(new_password, method='pbkdf2:sha256')
+        self.users.update_one({"email": email}, {"$set": {"password": hashed_password}})
